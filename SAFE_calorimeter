@@ -1,0 +1,54 @@
+#include "G4RunManagerFactory.hh"
+#include "G4UImanager.hh"
+#include "G4UIExecutive.hh"
+#include "G4VisExecutive.hh"
+
+#include "DetectorConstruction.hh"
+#include "ActionInitialization.hh"
+#include "QBBC.hh"
+
+using namespace SamplingCalorimeter;
+
+int main()
+{
+  // construct the default run manager
+#ifdef G4MULTITHREADED
+  G4MTRunManager* runManager = new G4MTRunManager;
+#else
+  G4RunManager* runManager = new G4RunManager;
+#endif
+  // set mandatory initialization classes
+  runManager->SetUserInitialization(new DetectorConstruction);
+  runManager->SetUserInitialization(new QBBC);
+  runManager->SetUserInitialization(new ActionInitialization);
+
+  // initialize G4 kernel
+  runManager->Initialize();
+
+  // get the pointer to the UI manager and set verbosities
+  G4UIExecutive* ui = nullptr;
+  G4UImanager* UI = G4UImanager::GetUIpointer();
+  UI->ApplyCommand("/run/verbose 1");
+  UI->ApplyCommand("/event/verbose 1");
+  UI->ApplyCommand("/tracking/verbose 1");
+
+  // start a run
+  int numberOfEvent = 3;
+  runManager->BeamOn(numberOfEvent);
+
+  // Initialize visualization
+  //
+  G4VisManager* visManager = new G4VisExecutive;
+  // G4VisExecutive can take a verbosity argument - see /vis/verbose guidance.
+  // G4VisManager* visManager = new G4VisExecutive("Quiet");
+  visManager->Initialize();
+  
+  UI->ApplyCommand("/control/execute init_vis.mac");
+  ui->SessionStart();
+  delete ui;
+
+
+  // job termination
+  delete runManager;
+  return 0;
+}
